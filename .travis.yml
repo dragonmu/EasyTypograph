@@ -9,7 +9,8 @@ php:
   - nightly
   
 before_script:
-  - php composer.phar install --dev --no-interaction
+  - composer self-update
+  - composer install -n --prefer-source
 
 script:
   - phpunit --coverage-clover build/logs/clover.xml
