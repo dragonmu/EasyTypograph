@@ -119,8 +119,8 @@ class Typograph {
     public function processQuotes($text) {
         //Глобальные потому внутри callback 157 строчка
         global $__ax, $__ay;
-        $okposstack = array('0');
-        $okpos = 0;
+        $quotPosisionStack = array('0');
+        $quotPosision = 0;
         $level = 0;
         $off = 0;
         //end нужна на случай закрытого тега
@@ -129,29 +129,29 @@ class Typograph {
         $text = preg_replace('/([a-zа-яё0-9]|\.|\&hellip\;|\!|\?|\>|\)|\:)((\"|\\\"|&quot;)+)(\.|\&hellip\;|\;|\:|\?|\!|\,|\s|\)|\<\/|<|$)/iu', '\1' . $this->QuoteFirsClose . '\4', $text);
 
         while (true) {
-            $p = $this->strposEx($text, array("&laquo;", "&raquo;"), $off);
-            if ($p === false)
+            $position = $this->strposEx($text, array("&laquo;", "&raquo;"), $off);
+            if ($position === false)
                 break;
-            if ($p['str'] == "&laquo;") {
+            if ($position['str'] == "&laquo;") {
                 if ($level > 0) {
-                    $text = $this->injectIn($p['pos'], $this->QuoteCrawseOpen, $text);
+                    $text = $this->injectIn($position['pos'], $this->QuoteCrawseOpen, $text);
                 }
                 $level++;
             }
-            if ($p['str'] == "&raquo;") {
+            if ($position['str'] == "&raquo;") {
                 $level--;
                 if ($level > 0) {
-                    $text = $this->injectIn($p['pos'], $this->QuoteCrawseClose, $text);
+                    $text = $this->injectIn($position['pos'], $this->QuoteCrawseClose, $text);
                 }
             }
-            $off = $p['pos'] + strlen($p['str']);
+            $off = $position['pos'] + strlen($position['str']);
             if ($level == 0) {
-                $okpos = $off;
-                array_push($okposstack, $okpos);
+                $quotPosision = $off;
+                array_push($quotPosisionStack, $quotPosision);
             } elseif ($level < 0) { // уровень стал меньше нуля
                 do {
-                    $lokpos = array_pop($okposstack);
-                    $k = substr($text, $lokpos, $off - $lokpos);
+                    $lockPosition = array_pop($quotPosisionStack);
+                    $k = substr($text, $lockPosition, $off - $lockPosition);
                     $k = str_replace($this->QuoteCrawseOpen, $this->QuoteFirsOpen, $k);
                     $k = str_replace($this->QuoteCrawseClose, $this->QuoteFirsClose, $k);
 
@@ -162,13 +162,13 @@ class Typograph {
                         $k = preg_replace_callback("/(^|[^0-9])([0-9]+)\&raquo\;/ui", create_function('$m', 'global $__ax,$__ay; $__ay++; if($__ay==$__ax){ return $m[1].$m[2]."&Prime;";} return $m[0];'), $k);
                         $amount = 1;
                     }
-                } while (($amount == 0) && count($okposstack));
+                } while (($amount == 0) && count($quotPosisionStack));
 
                 // успешно сделали замену
                 if ($amount == 1) {
                     // заново просмотрим содержимое
-                    $text = substr($text, 0, $lokpos) . $k . substr($text, $off);
-                    $off = $lokpos;
+                    $text = substr($text, 0, $lockPosition) . $k . substr($text, $off);
+                    $off = $lockPosition;
                     $level = 0;
                     continue;
                 }
@@ -177,9 +177,9 @@ class Typograph {
                 if ($amount == 0) {
                     // говорим, что всё в порядке
                     $level = 0;
-                    $text = substr($text, 0, $p['pos']) . '&quot;' . substr($text, $off);
-                    $off = $p['pos'] + strlen('&quot;');
-                    $okposstack = array($off);
+                    $text = substr($text, 0, $position['pos']) . '&quot;' . substr($text, $off);
+                    $off = $position['pos'] + strlen('&quot;');
+                    $quotPosisionStack = array($off);
                     continue;
                 }
             }
@@ -189,10 +189,10 @@ class Typograph {
 
             // закрывающих меньше, чем надо
             if ($level > 0) {
-                $k = substr($text, $okpos);
+                $k = substr($text, $quotPosision);
                 $k = str_replace($this->QuoteCrawseOpen, $this->QuoteFirsOpen, $k);
                 $k = str_replace($this->QuoteCrawseClose, $this->QuoteFirsClose, $k);
-                $text = substr($text, 0, $okpos) . $k;
+                $text = substr($text, 0, $quotPosision) . $k;
             }
         }
         return $text;
@@ -395,23 +395,6 @@ class Typograph {
         return preg_replace_callback('/(\<\/?)(.[^(><)]*)(=)(\>)/iu', function($m) {
             return $m[1] . base64_decode($m[2] . $m[3]) . $m[4];
         }, $text);
-    }
-
-    /**
-     * Отчищает специальные символы
-     * @param type $text
-     */
-    public function clearSpecialChars($text) {
-        foreach ($this->_charsTable as $char => $vals) {
-            if (isset($vals['utf8'])) {
-                foreach ($vals['utf8'] as $v) {
-                    if (is_int($v)) {
-                        $v = $this->getUnicodeChar($v);
-                    }
-                    $text = str_replace($v, $char, $text);
-                }
-            }
-        }
     }
 
     /**

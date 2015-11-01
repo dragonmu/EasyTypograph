@@ -28,6 +28,21 @@ class TypographTest extends PHPUnit_Framework_TestCase {
         foreach ($dat as $val) {
             $this->assertEquals($val[0] . $result . $val[1], $typograph->process($val[0] . $original . $val[1]));
         }
+
+        $encodings = array('CP1251', 'UTF-8');
+
+        foreach ($encodings as $encoding) {
+            $typograph->setConvertFromEncoding($encoding);
+            foreach ($dat as $val) {
+                $this->assertEquals(
+                        $val[0] . $result . $val[1]
+                        , mb_convert_encoding(
+                                ($typograph->process($val[0] . mb_convert_encoding($original, $encoding, 'UTF-8') . $val[1]))
+                                , 'UTF-8'
+                                , $encoding)
+                );
+            }
+        }
     }
 
     public function testProcessManySpacesToOne() {
@@ -48,8 +63,14 @@ class TypographTest extends PHPUnit_Framework_TestCase {
 
     public function testQuotes() {
         $this->fullTestRule("processQuotes", "&laquo;тут тоже текст &ldquo;Эназвание&ldquo; крутая ковычка&raquo;", "\"тут тоже текст \"Эназвание\" крутая ковычка\"");
-        $typograph = new Typograph;
-        $typograph->processQuotes("&laquo;Онлайн-кинотеатр &ldquo;Аййо&ldquo;&raquo;", "\"Онлайн-кинотеатр \"Аййо\"\"");
+    }
+
+    public function testQuotesSecond() {
+        $this->fullTestRule("processQuotes", "&laquo;тут тоже текст &laquo;Эназвание крутая ковычка&laquo;", "\"тут тоже текст \"Эназвание крутая ковычка\"");
+    }
+
+    public function testQuotesThird() {
+        $this->fullTestRule("processQuotes", "&laquo;тут тоже текст &ldquo;&ldquo;&raquo;&quot;&quot;\"Эназвание крутая ковычка\"&quot;&quot;", "\"тут тоже текст \"\"\"\"\"\"Эназвание крутая ковычка\"&raquo;&raquo;");
     }
 
     public function testNobrVtchItdItp() {
