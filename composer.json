@@ -1,4 +1,6 @@
 {
+    "name": "dragonmu/EasyTypograph",
+    "description": "free and easy typograph",
     "require-dev": {
         "satooshi/php-coveralls": "dev-master"
     }
